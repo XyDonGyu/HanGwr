@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>정음 단위 변환기</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Nanum+Myeongjo:wght@700;800&display=swap">
+<style>
+/* Layout: one working column. Input on top, the unit syllable taken apart into its three slots as the result, then equal values, the full 대응표 grid, and the rules. Slot colours: 초성 = unit (ink), 중성 = dimension (teal), 종성 = scale prefix (amber). */
+:root{
+  --bg:#f4f7f6; --surface:#ffffff; --fg:#16211f; --muted:#5a6966; --line:#d6dfdc;
+  --accent:#0f7466; --dim:#0f7466; --pre:#b4630a; --warn:#b3261e; --warn-bg:#fdecea; --tint:#e6f2ef;
+  --display:"Nanum Myeongjo","Noto Serif KR",serif;
+  --body:"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  --mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101716; --surface:#18211f; --fg:#e4ecea; --muted:#9aaba7; --line:#2b3835;
+  --accent:#4fc2b0; --dim:#4fc2b0; --pre:#f0a54a; --warn:#ff8a80; --warn-bg:#3a1d1b; --tint:#1d2e2a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101716; --surface:#18211f; --fg:#e4ecea; --muted:#9aaba7; --line:#2b3835;
+  --accent:#4fc2b0; --dim:#4fc2b0; --pre:#f0a54a; --warn:#ff8a80; --warn-bg:#3a1d1b; --tint:#1d2e2a; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-family:var(--display);font-size:1.9rem;margin:0;line-height:1.25;text-wrap:balance}
+h2{font-size:1rem;margin:0 0 10px}
+.sub{color:var(--muted);margin:4px 0 0;max-width:65ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:6px}
+input[type=text]{width:100%;box-sizing:border-box;font:inherit;font-family:var(--mono);font-size:1.05rem;padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+button{font:inherit;font-size:.88rem;padding:6px 12px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.err{color:var(--warn);font-size:.9rem;min-height:1.3em;margin-top:8px}
+.hint{color:var(--muted);font-size:.85rem;margin:8px 0 0}
+.c-unit{color:var(--fg)} .c-dim{color:var(--dim)} .c-pre{color:var(--pre)}
+.result{display:grid;grid-template-columns:auto 1fr;gap:18px 28px;align-items:center}
+@media (max-width:620px){.result{grid-template-columns:1fr}}
+.result>*{min-width:0}
+.big{font-family:var(--display);font-weight:800;font-size:clamp(3.2rem,12vw,5rem);line-height:1;letter-spacing:.02em}
+.parts{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.part{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:.85rem;line-height:1.35}
+.part b{display:block;font-family:var(--display);font-size:1.3rem}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}
+.kv dt{color:var(--muted);font-size:.85rem}
+.kv dd{margin:0;font-family:var(--mono);overflow-wrap:anywhere}
+.chip{display:inline-block;font-family:var(--body);font-size:.78rem;padding:1px 8px;border-radius:99px;margin-left:6px;vertical-align:1px}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.ok{background:var(--tint);color:var(--accent)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;white-space:nowrap}
+th{font-size:.8rem;color:var(--muted);font-weight:500}
+td.num{font-family:var(--mono);text-align:right}
+tr.cur td{background:var(--tint)}
+.grid th,.grid td{text-align:center;border:1px solid var(--line);padding:6px 4px;min-width:4.4em}
+.grid td{cursor:pointer;line-height:1.25}
+.grid td:hover{background:var(--tint)}
+.grid td .s{font-family:var(--display);font-weight:800;font-size:1.35rem;display:block}
+.grid td small{display:block;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.grid td.na{color:var(--muted);cursor:default;font-size:.8rem}
+.grid td.na:hover{background:transparent}
+.grid td.clash{box-shadow:inset 0 0 0 2px var(--warn)}
+.grid td.cur{background:var(--tint)}
+.grid th.rowh{text-align:left;color:var(--fg);font-weight:600;font-size:.85rem}
+ul.clashes{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+.note{font-size:.88rem;color:var(--muted);max-width:68ch}
+code{font-family:var(--mono);font-size:.9em}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>정음 단위 변환기</h1>
+    <p class="sub">SI 단위를 정음 음절 하나로 적습니다. <b class="c-unit">초성</b>은 단위, <b class="c-dim">중성</b>은 차원(길이·넓이·부피), <b class="c-pre">종성</b>은 크기(접두어)입니다. 받침에 ㄹ이 붙으면 역수(1/1000, 1/1000000…)입니다.</p>
+  </header>
+
+  <form class="panel" id="f" autocomplete="off">
+    <label for="q">값과 단위 (SI 표기, 정음 음절, 로마자 모두 됩니다)</label>
+    <input type="text" id="q" value="3.5 km">
+    <div class="row" id="samples"></div>
+    <div class="err" id="err"></div>
+    <p class="hint">예: <code>250 mg</code>, <code>1 L</code>, <code>20 cc</code>, <code>60 km/h</code>, <code>2.5 밁</code>, <code>멐</code>, <code>myrm</code></p>
+  </form>
+
+  <section class="panel">
+    <div class="result">
+      <div>
+        <div class="big" id="big"></div>
+        <div class="parts" id="parts"></div>
+      </div>
+      <dl class="kv" id="kv"></dl>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 id="eqh">같은 양을 다른 단위로</h2>
+    <div class="tbl"><table id="eq"><thead><tr><th>정음</th><th>로마자</th><th>SI</th><th style="text-align:right">값</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>대응표 <span class="note">(칸을 누르면 위에서 변환합니다 · 빨간 테두리는 말소리가 겹치는 칸)</span></h2>
+    <div class="tbl"><table class="grid" id="grid"></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>말소리가 겹치는 짝</h2>
+    <p class="note">표준 발음법에서 받침은 대표음으로 소리 나고, 겹받침은 자음 하나만 소리 납니다. 그래서 역수를 나타내는 ㄹ이 사라져 큰 단위와 작은 단위가 같은 소리가 됩니다. 글로는 구별되지만 말로 전할 때는 로마자처럼 받침을 모두 소리 내야 합니다.</p>
+    <ul class="clashes" id="clashes"></ul>
+  </section>
+
+  <section class="panel">
+    <h2>규칙</h2>
+    <div class="tbl"><table id="rules"><thead><tr><th>접두어</th><th>배수</th><th>받침</th><th>로마자</th><th>상태</th></tr></thead><tbody></tbody></table></div>
+    <p class="note">접두어는 거듭제곱하기 전의 길이에 붙습니다(SI 규약과 같음). 그래서 멐(km²)은 1,000,000m², 뭋(cm³)은 1mL입니다. 리터(L)는 묻(dm³)으로 적고, 길이 접두어의 세제곱으로 나타낼 수 없는 dL, cL 같은 단위는 아직 정음 표기가 없습니다.</p>
+    <p class="note">이 표는 기본 구상을 옮긴 것입니다. 미정 접두어(헥토, 데카, 기가 이상, 피코 이하와 2022년에 추가된 론나·퀘타·론토·퀙토)와 다른 기본 단위(초, 암페어, 켈빈, 몰, 칸델라)는 확정되면 추가합니다.</p>
+  </section>
+</div>
+
+<script>
+// ---- configuration: extend here when more prefixes or units are decided ----
+const PREFIXES=[ // order: large to small
+  {sym:'M',name:'메가',p:6,jong:'ㅁ',rom:'m'},
+  {sym:'k',name:'킬로',p:3,jong:'ㅋ',rom:'k'},
+  {sym:'h',name:'헥토',p:2,jong:null},
+  {sym:'da',name:'데카',p:1,jong:null},
+  {sym:'',name:'(없음)',p:0,jong:'',rom:''},
+  {sym:'d',name:'데시',p:-1,jong:'ㄷ',rom:'d'},
+  {sym:'c',name:'센티',p:-2,jong:'ㅊ',rom:'c'},
+  {sym:'m',name:'밀리',p:-3,jong:'ㄺ',rom:'rg'},
+  {sym:'μ',name:'마이크로',p:-6,jong:'ㄻ',rom:'rm'},
+  {sym:'n',name:'나노',p:-9,jong:'ㄼ',rom:'rb'},
+];
+const DIMS=[
+  {id:'mass',name:'질량',cho:'ㄱ',jung:'ㅣ',rom:'gy',exp:1,si:'g',unit:'그램(g)'},
+  {id:'len',name:'길이',cho:'ㅁ',jung:'ㅣ',rom:'my',exp:1,si:'m',unit:'미터(m)'},
+  {id:'area',name:'넓이',cho:'ㅁ',jung:'ㅓ',rom:'me',exp:2,si:'m²',unit:'제곱미터(m²)'},
+  {id:'vol',name:'부피',cho:'ㅁ',jung:'ㅜ',rom:'mu',exp:3,si:'m³',unit:'세제곱미터(m³)'},
+  {id:'vs',name:'속력 (초)',cho:'ㅁ',jung:'ㅣ',rom:'my',exp:1,si:'m/s',tail:'초',rtail:'co',per:'s',unit:'미터 매 초(m/s)'},
+  {id:'vh',name:'속력 (시간)',cho:'ㅁ',jung:'ㅣ',rom:'my',exp:1,si:'m/h',tail:'시',rtail:'sy',per:'h',unit:'미터 매 시(m/h)'},
+];
+const ALIAS={ // well-known names for some cells
+  'mass:6':'t (톤)','vol:-1':'L (리터)','vol:-2':'mL, cc','vol:-3':'μL','vol:0':'kL'
+};
+// ---- Hangul composition ----
+const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+const JUNG='ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
+const JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const PRON={'':'','ㅋ':'ㄱ','ㅁ':'ㅁ','ㄷ':'ㄷ','ㅊ':'ㄷ','ㄺ':'ㄱ','ㄻ':'ㅁ','ㄼ':'ㄹ'}; // 대표음 at word end
+const compose=(c,j,f)=>String.fromCharCode(0xAC00+(CHO.indexOf(c)*21+JUNG.indexOf(j))*28+JONG.indexOf(f||''));
+const decompose=ch=>{const n=ch.charCodeAt(0)-0xAC00;if(n<0||n>11171)return null;return [CHO[Math.floor(n/588)],JUNG[Math.floor((n%588)/28)],JONG[n%28]]};
+const $=id=>document.getElementById(id);
+
+function cell(dim,pre){
+  if(pre.jong===null)return null;
+  const s=compose(dim.cho,dim.jung,pre.jong)+(dim.tail||'');
+  const pron='['+compose(dim.cho,dim.jung,PRON[pre.jong])+(dim.tail||'')+']';
+  const rom=dim.rom+pre.rom+(dim.rtail?'·'+dim.rtail:'');
+  let si=pre.sym+dim.si; if(dim.per)si=pre.sym+'m/'+dim.per;
+  const alias=ALIAS[dim.id+':'+pre.p]||'';
+  return {dim,pre,s,pron,rom,si,alias};
+}
+const CELLS=[];DIMS.forEach(d=>PREFIXES.forEach(p=>{const c=cell(d,p);if(c)CELLS.push(c)}));
+// collisions: same spoken form
+const byPron={};CELLS.forEach(c=>{(byPron[c.pron]=byPron[c.pron]||[]).push(c)});
+const clashOf=c=>byPron[c.pron].filter(o=>o!==c);
+
+// ---- parsing ----
+function parseSI(u){
+  u=u.replace(/µ|u(?=[gmLl]|$)/g,'μ').replace(/²/g,'2').replace(/³/g,'3').replace(/\s+/g,'');
+  if(/^(t|ton|톤)$/.test(u))return find('mass',6);
+  if(/^cc$/i.test(u))return find('vol',-2);
+  let m=u.match(/^(da|M|k|h|d|c|m|μ|n)?([lL])$/);
+  if(m){const map={'':-1,'m':-2,'μ':-3,'k':0};const k=m[1]||'';
+    if(!(k in map))throw `${k}L 은 길이 접두어의 세제곱으로 나타낼 수 없어 아직 정음 표기가 없습니다.`;return find('vol',map[k])}
+  m=u.match(/^(da|M|k|h|d|c|m|μ|n)?(g|m2|m3|m\/s|m\/h|m)$/);
+  if(!m)return null;
+  const pre=PREFIXES.find(p=>p.sym===(m[1]||''));
+  const id={g:'mass',m:'len',m2:'area',m3:'vol','m/s':'vs','m/h':'vh'}[m[2]];
+  if(pre.jong===null)throw `${pre.name}(${pre.sym}) 접두어는 아직 받침이 정해지지 않았습니다.`;
+  return find(id,pre.p);
+}
+function parseHangul(u){
+  u=u.replace(/\s+/g,'');if(!/^[가-힣]{1,2}$/.test(u))return null;
+  const d=decompose(u[0]);const tail=u.slice(1);
+  const dim=DIMS.find(x=>x.cho===d[0]&&x.jung===d[1]&&(x.tail||'')===tail);
+  if(!dim)throw `‘${u}’는 정음 단위 표에 없는 음절입니다.`;
+  const pre=PREFIXES.find(p=>p.jong===d[2]);
+  if(!pre)throw `받침 ‘${d[2]}’은 아직 접두어로 정해지지 않았습니다.`;
+  return find(dim.id,pre.p);
+}
+function parseRoman(u){
+  const m=u.replace(/\s+/g,'').toLowerCase().match(/^(gy|my|me|mu)(rg|rm|rb|k|m|d|c)?(?:[·.\-]?(co|sy))?$/);
+  if(!m)return null;
+  const dim=DIMS.find(x=>x.rom===m[1]&&(x.rtail||undefined)===m[3]);
+  if(!dim)return null;
+  const pre=PREFIXES.find(p=>p.rom===(m[2]||''));
+  return find(dim.id,pre.p);
+}
+const find=(id,p)=>CELLS.find(c=>c.dim.id===id&&c.pre.p===p);
+function parseInput(s){
+  const m=s.trim().match(/^([-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?)?\s*(.*)$/i);
+  const val=m[1]!==undefined?parseFloat(m[1]):1, u=m[2].trim();
+  if(!u)throw '단위를 입력하세요.';
+  const c=parseSI(u)||parseHangul(u)||parseRoman(u);
+  if(!c)throw `‘${u}’를 읽지 못했습니다. SI 표기(km, mg, cc), 정음 음절(밐, 긹), 로마자(myk) 중 하나로 넣어 주세요.`;
+  return {val,c};
+}
+
+// ---- formatting ----
+function fmt(x){
+  if(x===0)return '0';const a=Math.abs(x);
+  if(a>=1e-6&&a<1e15){const r=Number(x.toPrecision(12));return r.toLocaleString('ko-KR',{maximumFractionDigits:12})}
+  const [mant,e]=x.toExponential(6).split('e');const sup=String(+e).replace(/-/g,'⁻').replace(/\d/g,d=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);
+  return `${Number(mant)} × 10${sup}`;
+}
+const pow=p=>{const s=String(p).replace(/-/g,'⁻').replace(/\d/g,d=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);return '10'+s};
+
+// ---- render ----
+let cur=null;
+function render(val,c){
+  cur=c;
+  const d=decompose(c.s[0]);
+  $('big').innerHTML=`<span class="c-unit">${c.s[0]}</span>${c.dim.tail?`<span class="c-unit">${c.dim.tail}</span>`:''}`;
+  const preTxt=c.pre.p===0?'없음 (1배)':`${c.pre.name} (${pow(c.pre.p)})`;
+  $('parts').innerHTML=
+    `<div class="part"><b class="c-unit">${d[0]}</b>초성 · ${c.dim.cho==='ㄱ'?'그램':'미터'}</div>`+
+    `<div class="part"><b class="c-dim">${d[1]}</b>중성 · ${c.dim.name.replace(/ \(.+\)/,'')}${c.dim.exp>1?` (${c.dim.exp}제곱)`:''}</div>`+
+    `<div class="part"><b class="c-pre">${d[2]||'—'}</b>종성 · ${preTxt}</div>`+
+    (c.dim.tail?`<div class="part"><b class="c-unit">${c.dim.tail}</b>뒤 음절 · 매 ${c.dim.per==='s'?'초':'시간'}</div>`:'');
+  const cl=clashOf(c);
+  const rows=[
+    ['값',`${fmt(val)} ${c.s}`],
+    ['SI',`${fmt(val)} ${c.si}${c.alias?'  ('+c.alias+')':''}`],
+    ['로마자',`${fmt(val)} ${c.rom}`],
+    ['기본 단위로',`${fmt(val*Math.pow(10,c.pre.p*c.dim.exp))} ${c.dim.si}`],
+    ['표준 발음',c.pron]
+  ];
+  $('kv').innerHTML='';
+  rows.forEach(([k,v],i)=>{const dt=document.createElement('dt');dt.textContent=k;const dd=document.createElement('dd');dd.textContent=v;
+    if(i===4){const ch=document.createElement('span');ch.className='chip '+(cl.length?'warn':'ok');
+      ch.textContent=cl.length?`${cl.map(o=>o.s+'('+o.si+')').join(', ')}와 같은 소리`:'겹치는 소리 없음';dd.appendChild(ch)}
+    $('kv').append(dt,dd)});
+  // equal values
+  $('eqh').textContent=`같은 양을 다른 ${c.dim.name.replace(/ \(.+\)/,'')} 단위로`;
+  const tb=$('eq').tBodies[0];tb.innerHTML='';
+  CELLS.filter(o=>o.dim.id===c.dim.id).forEach(o=>{
+    const v=val*Math.pow(10,(c.pre.p-o.pre.p)*c.dim.exp);
+    const tr=tb.insertRow();if(o===c)tr.className='cur';
+    tr.innerHTML=`<td style="font-family:var(--display);font-weight:800;font-size:1.1rem">${o.s}</td><td><code>${o.rom}</code></td><td>${o.si}${o.alias?` <span class="note">(${o.alias})</span>`:''}</td><td class="num">${fmt(v)}</td>`;
+  });
+  drawGrid();
+}
+function drawGrid(){
+  let h='<tr><th></th>'+PREFIXES.map(p=>`<th>${p.sym||'—'}<br><span class="note">${p.p?pow(p.p):'1'}</span></th>`).join('')+'</tr>';
+  DIMS.forEach(d=>{
+    h+=`<tr><th class="rowh">${d.name}</th>`;
+    PREFIXES.forEach(p=>{const c=find(d.id,p.p);
+      if(!c){h+='<td class="na">미정</td>';return}
+      const cls=[clashOf(c).length?'clash':'',c===cur?'cur':''].join(' ');
+      h+=`<td class="${cls}" data-id="${d.id}" data-p="${p.p}" title="${c.si} · 표준 발음 ${c.pron}"><span class="s">${c.s}</span><small>${c.rom}</small><small>${c.si}</small></td>`});
+    h+='</tr>';
+  });
+  $('grid').innerHTML=h;
+}
+$('grid').addEventListener('click',e=>{const td=e.target.closest('td[data-id]');if(!td)return;
+  const c=find(td.dataset.id,+td.dataset.p);$('q').value=`1 ${c.si}`;run()});
+
+// clash list
+(function(){const seen=new Set();const ul=$('clashes');
+  CELLS.forEach(c=>{const g=byPron[c.pron];if(g.length<2||seen.has(c.pron))return;seen.add(c.pron);
+    const ps=g.map(o=>o.pre.p);const ratio=Math.pow(10,(Math.max(...ps)-Math.min(...ps))*g[0].dim.exp);
+    const li=document.createElement('li');
+    li.innerHTML=`${g.map(o=>`<b style="font-family:var(--display)">${o.s}</b> (${o.si}, <code>${o.rom}</code>)`).join(' · ')} → 모두 <b>${c.pron}</b> <span class="chip warn">${fmt(ratio)}배 차이</span>`;
+    ul.appendChild(li)})})();
+// rules table
+(function(){const tb=$('rules').tBodies[0];
+  PREFIXES.forEach(p=>{const tr=tb.insertRow();
+    tr.innerHTML=`<td>${p.name} ${p.sym?`(${p.sym})`:''}</td><td>${p.p?pow(p.p):'1'}</td><td style="font-family:var(--display);font-weight:800;font-size:1.1rem" class="c-pre">${p.jong===null?'—':(p.jong||'없음')}</td><td><code>${p.jong===null?'—':(p.rom||'—')}</code></td><td>${p.jong===null?'<span class="chip warn">미정</span>':'<span class="chip ok">구상</span>'}</td>`})})();
+
+function run(){
+  $('err').textContent='';
+  try{const {val,c}=parseInput($('q').value);render(val,c)}catch(e){$('err').textContent=e}
+}
+$('f').addEventListener('submit',e=>{e.preventDefault();run()});
+$('q').addEventListener('input',()=>{try{const {val,c}=parseInput($('q').value);$('err').textContent='';render(val,c)}catch(e){}});
+[['3.5 km','3.5 km'],['250 mg','250 mg'],['1 t','1톤'],['1 L','1 리터'],['20 cc','20 cc'],['60 km/h','60 km/h'],['2 km²','2 km²'],['5 μm','5 μm']].forEach(([v,l])=>{
+  const b=document.createElement('button');b.type='button';b.textContent=l;b.onclick=()=>{$('q').value=v;run()};$('samples').appendChild(b)});
+run();
+</script>
+
+</body>
+</html>

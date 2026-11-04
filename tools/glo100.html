@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>Glo100 좌표 주소</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Nanum+Myeongjo:wght@700;800&display=swap">
+<style>
+/* Layout: one working column — input on top, the syllable address as the hero result, then its digit-by-digit breakdown and the 100-cell reference grid. Consonant = latitude digit (blue), vowel = longitude digit (red). */
+:root{
+  --bg:#f5f7fa; --surface:#ffffff; --fg:#17202b; --muted:#5b6675; --line:#d9dfe7;
+  --lat:#1f5fbf; --lon:#c23b2a; --accent:#1f5fbf; --hl:#fff1b8; --hl-fg:#17202b;
+  --display:"Nanum Myeongjo","Noto Serif KR",serif;
+  --body:"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  --mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161d; --surface:#1a212b; --fg:#e6ebf2; --muted:#9aa6b6; --line:#2c3644;
+  --lat:#7fb0ff; --lon:#ff8a78; --accent:#7fb0ff; --hl:#4a3f12; --hl-fg:#fff3c4; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161d; --surface:#1a212b; --fg:#e6ebf2; --muted:#9aa6b6; --line:#2c3644;
+  --lat:#7fb0ff; --lon:#ff8a78; --accent:#7fb0ff; --hl:#4a3f12; --hl-fg:#fff3c4; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font-family:var(--display);font-size:1.9rem;margin:0;line-height:1.25;text-wrap:balance}
+h2{font-size:1rem;margin:0 0 10px;font-weight:700}
+.sub{color:var(--muted);margin:4px 0 0}
+.lat{color:var(--lat)} .lon{color:var(--lon)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+.forms{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:680px){.forms{grid-template-columns:1fr}}
+.forms>*{min-width:0}
+label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:6px}
+input[type=text],select{width:100%;box-sizing:border-box;font:inherit;font-family:var(--mono);padding:10px 12px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg)}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+button{font:inherit;font-size:.9rem;padding:8px 14px;border-radius:7px;border:1px solid var(--accent);background:var(--accent);color:var(--surface);cursor:pointer}
+button.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+button.ghost:hover{border-color:var(--accent)}
+.err{color:var(--lon);font-size:.88rem;margin-top:8px;min-height:1.2em}
+.hint{color:var(--muted);font-size:.85rem;margin-top:8px}
+.result{display:flex;flex-direction:column;gap:14px}
+.addr{font-family:var(--display);font-weight:800;font-size:clamp(2rem,7vw,3.2rem);line-height:1.2;letter-spacing:.04em;word-break:keep-all;overflow-wrap:anywhere}
+.addr .oct{font-family:var(--mono);font-weight:500;font-size:.6em;color:var(--muted);margin-right:.25em}
+.addr .dot{color:var(--muted)}
+.addr .chk{color:var(--muted);font-size:.7em;margin-left:.15em}
+.verify{padding:10px 12px;border-radius:7px;font-size:.92rem;border:1px solid}
+.verify.ok{border-color:var(--lat);color:var(--lat)}
+.verify.bad{border-color:var(--lon);color:var(--lon)}
+.kv{display:grid;grid-template-columns:auto 1fr auto;gap:6px 14px;align-items:center}
+.kv dt{color:var(--muted);font-size:.85rem}
+.kv dd{margin:0;font-family:var(--mono);min-width:0;overflow-wrap:anywhere}
+.copy{font-size:.8rem;padding:4px 10px}
+.links{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem}
+.links a{color:var(--accent)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:center;white-space:nowrap}
+th{font-size:.8rem;color:var(--muted);font-weight:500}
+td.syl{font-family:var(--display);font-weight:800;font-size:1.25rem}
+td.num{font-family:var(--mono)}
+.grid td,.grid th{border:1px solid var(--line);padding:4px 2px;min-width:2.2em}
+.grid td{font-size:1.05rem;position:relative}
+.grid td small{display:block;font-family:var(--mono);font-size:.62rem;color:var(--muted);line-height:1}
+.grid td.on{background:var(--hl);color:var(--hl-fg)}
+.grid td.on small{color:var(--hl-fg)}
+.grid th.lat,.grid th.lon{font-weight:700}
+.note{font-size:.85rem;color:var(--muted);max-width:65ch}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Glo100 좌표 주소</h1>
+    <p class="sub">한글100진법으로 좌표를 음절 주소로 바꾸고, 음절 주소를 다시 좌표로 되돌립니다. 자음은 <b class="lat">위도</b> 한 자리, 모음은 <b class="lon">경도</b> 한 자리입니다.</p>
+  </header>
+
+  <section class="forms">
+    <form class="panel" id="fEnc" autocomplete="off">
+      <h2>좌표 → Glo100</h2>
+      <label for="coord">위도, 경도 (십진수 또는 도·분·초)</label>
+      <input type="text" id="coord" value="37.5390208, 126.7236864">
+      <div class="row">
+        <label for="prec" style="margin:0">정밀도</label>
+        <select id="prec" style="width:auto"></select>
+        <button type="submit">변환</button>
+      </div>
+      <div class="row" id="samples"></div>
+      <div class="err" id="encErr"></div>
+      <p class="hint">지도 앱에서 위치를 길게 누르면 좌표를 복사할 수 있습니다. 예: <code>-8.36064 116.039</code>, <code>N37°32'20" E126°43'25"</code>, <code>북위 37.54 동경 126.72</code></p>
+    </form>
+
+    <form class="panel" id="fDec" autocomplete="off">
+      <h2>Glo100 → 좌표</h2>
+      <label for="glo">음절 주소 (앞의 구역 숫자는 생략하면 2)</label>
+      <input type="text" id="glo" value="6어쟈.드보유브르">
+      <div class="row"><button type="submit">되돌리기</button></div>
+      <div class="err" id="decErr"></div>
+      <p class="hint">한글(도샤며더), 로마자(DoSyaMyeDe), 음성 호출(도33 샤76) 모두 됩니다. 끝에 <code>/확인음절</code>을 붙이면 맞게 받았는지 검사합니다.</p>
+    </form>
+  </section>
+
+  <section class="panel result" aria-live="polite">
+    <div class="addr" id="addr"></div>
+    <div class="verify" id="verify" hidden></div>
+    <dl class="kv" id="kv"></dl>
+    <div class="links" id="links"></div>
+  </section>
+
+  <section class="panel">
+    <h2>자리별 풀이</h2>
+    <div class="tbl"><table id="steps"><thead><tr><th>순서</th><th>음절</th><th>숫자</th><th class="lat">위도 자리</th><th class="lon">경도 자리</th><th>칸 크기</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>한글100 표 <span class="note">(노란 칸이 지금 주소에 쓰인 음절)</span></h2>
+    <div class="tbl"><table class="grid" id="grid"></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>확인 음절</h2>
+    <p class="note">주소 끝에 붙이는 한 음절입니다. 자음은 구역 숫자와 위도 자리들로, 모음은 구역 숫자와 경도 자리들로 계산합니다(Damm 검사 숫자 방식). 음절 하나를 잘못 듣거나 이웃한 두 음절의 순서가 바뀌면 받는 쪽 계산 값이 달라져서 바로 드러납니다. 오류가 있다는 것만 알려 주고 고쳐 주지는 않으니, 불일치가 나오면 다시 불러 달라고 하면 됩니다.</p>
+    <p class="note">음성 호출은 음절마다 숫자를 붙여 부르는 방식입니다(예: 도33 샤76). 같은 정보를 두 번 전하므로 잡음 속에서도 듣는 사람이 바로 맞춰 볼 수 있습니다.</p>
+  </section>
+
+  <section class="panel">
+    <h2>구역 숫자</h2>
+    <div class="tbl"><table>
+      <thead><tr><th></th><th>서경 180–90°</th><th>서경 90–0°</th><th>동경 0–90°</th><th>동경 90–180°</th></tr></thead>
+      <tbody><tr><th>북반구</th><td>4</td><td>3</td><td>1</td><td>2</td></tr>
+      <tr><th>남반구</th><td>8</td><td>7</td><td>5</td><td>6</td></tr></tbody>
+    </table></div>
+    <p class="note">경도는 각 구역의 기준선(0° 또는 90°)에서 잰 거리입니다. 한국은 2구역(경도 126° → 36°), 인도네시아 롬복은 6구역입니다. 서반구에서 거리를 재는 방향은 그림 자료를 보고 추정한 것이라 확인이 필요합니다.</p>
+  </section>
+</div>
+
+<script>
+const CON=['ㅇ','ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅈ','ㅊ'];
+const VOW=['ㅡ','ㅏ','ㅓ','ㅗ','ㅜ','ㅣ','ㅑ','ㅕ','ㅛ','ㅠ'];
+const CHO=[11,0,2,3,5,6,7,9,12,14];
+const JUNG=[18,0,4,8,13,20,2,6,12,17];
+const RC=['X','G','N','D','R','M','B','S','J','C'];
+const RV=['w','a','e','o','u','y','ya','ye','yo','yu'];
+const SIZE=['1,111km','111km','11km','1.1km','111m','11m','1.1m','11cm'];
+// Damm check digit: catches every single wrong digit and every swap of two neighbouring digits
+const DAMM=[[0,3,1,7,5,9,8,6,4,2],[7,0,9,2,1,5,4,8,6,3],[4,2,0,6,8,7,1,3,5,9],[1,7,5,0,9,8,3,4,2,6],[6,1,2,3,0,4,5,9,7,8],[3,6,7,4,2,0,9,5,8,1],[5,8,6,9,7,2,0,1,3,4],[8,9,4,5,3,6,2,0,1,7],[9,4,3,8,6,1,7,2,0,5],[2,5,8,1,4,3,6,7,9,0]];
+const damm=ds=>ds.reduce((c,d)=>DAMM[c][d],0);
+const checkPair=(oct,pairs)=>[damm([oct,...pairs.map(p=>p[0])]),damm([oct,...pairs.map(p=>p[1])])];
+const syl=(a,b)=>String.fromCharCode(0xAC00+(CHO[a]*21+JUNG[b])*28);
+const rom=(a,b)=>RC[a]+RV[b];
+const $=id=>document.getElementById(id);
+
+// precision options
+SIZE.forEach((s,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=`${i+1}음절 · 약 ${s}`;if(i===5)o.selected=true;$('prec').appendChild(o)});
+
+function octOf(lat,lon){
+  const n=lat>=0, b= lon>=90?2: lon>=0?1: lon>-90?3:4;
+  return n?b:b+4;
+}
+function lonOff(lon){const a=Math.abs(lon);return a>=90?a-90:a}
+function digits(v){ // v in [0,90], 2 integer + 6 decimal digits, truncated
+  const n=Math.min(Math.floor(v*1e6+1e-7),90999999);
+  return String(n).padStart(8,'0').split('').map(Number);
+}
+function encode(lat,lon,n){
+  const oct=octOf(lat,lon), la=digits(Math.abs(lat)), lo=digits(lonOff(lon));
+  const pairs=[];for(let i=0;i<n;i++)pairs.push([la[i],lo[i]]);
+  return {oct,pairs};
+}
+function decode(oct,pairs){
+  const n=pairs.length;let la=0,lo=0;
+  pairs.forEach(([a,b],i)=>{const p=Math.pow(10,1-i);la+=a*p;lo+=b*p});
+  const cell=Math.pow(10,2-n);la+=cell/2;lo+=cell/2;
+  const south=oct>4, band=((oct-1)%4)+1;
+  let lon= band===1?lo: band===2?lo+90: band===3?-lo: -(lo+90);
+  return {lat:south?-la:la,lon,cell};
+}
+
+function parseCoord(s){
+  s=s.trim().toUpperCase().replace(/북위/g,'N').replace(/남위/g,'S').replace(/동경/g,'E').replace(/서경/g,'W');
+  if(!s)throw '좌표를 입력하세요.';
+  let parts;
+  if(s.includes(','))parts=s.split(',');
+  else{
+    const m=s.match(/[NS][^EW]*|[EW][^NS]*/g);
+    if(m&&m.length===2)parts=m;
+    else{const nums=s.match(/-?\d+(?:\.\d+)?/g)||[];
+      if(nums.length===2)parts=nums;
+      else if(nums.length===4)parts=[nums.slice(0,2).join(' '),nums.slice(2).join(' ')];
+      else if(nums.length===6)parts=[nums.slice(0,3).join(' '),nums.slice(3).join(' ')];
+      else throw '위도와 경도 두 값을 찾지 못했습니다. 쉼표로 구분해 주세요.';}
+  }
+  if(parts.length!==2)throw '위도와 경도 두 값을 쉼표로 구분해 주세요.';
+  const vals=parts.map(p=>{
+    const nums=(p.match(/\d+(?:\.\d+)?/g)||[]).map(Number);
+    if(!nums.length)throw '숫자를 읽지 못했습니다: '+p;
+    let v=nums[0]+(nums[1]||0)/60+(nums[2]||0)/3600;
+    const neg=/-/.test(p)||/[SW]/.test(p);
+    const axis=/[NS]/.test(p)?'lat':/[EW]/.test(p)?'lon':null;
+    return {v:neg?-v:v,axis};
+  });
+  let lat=vals[0].v,lon=vals[1].v;
+  if(vals[0].axis==='lon'||vals[1].axis==='lat'){lat=vals[1].v;lon=vals[0].v}
+  if(Math.abs(lat)>90)throw '위도는 -90에서 90 사이여야 합니다.';
+  if(Math.abs(lon)>180)throw '경도는 -180에서 180 사이여야 합니다.';
+  return {lat,lon};
+}
+
+function parseGlo(s){
+  s=s.trim();if(!s)throw '음절 주소를 입력하세요.';
+  let oct=2;const m=s.match(/^\s*([1-8])/);
+  if(m){oct=+m[1];s=s.slice(m.index+m[0].length)}
+  const parts=s.split('/');
+  if(parts.length>2)throw '확인 음절 앞의 / 는 한 번만 씁니다.';
+  const pairs=parsePairs(parts[0]);
+  if(!pairs.length)throw '음절을 찾지 못했습니다.';
+  if(pairs.length>8)throw '8음절까지만 지원합니다.';
+  let check=null;
+  if(parts.length===2){const c=parsePairs(parts[1]);
+    if(c.length!==1)throw '/ 뒤에는 확인 음절 하나만 씁니다.';check=c[0]}
+  return {oct,pairs,check};
+}
+function parsePairs(s){
+  s=s.replace(/[\s.·:()]|\d/g,'');
+  const pairs=[];
+  if(/[가-힣]/.test(s)){
+    for(const ch of s){
+      const c=ch.charCodeAt(0)-0xAC00;
+      if(c<0||c>11171)throw `‘${ch}’는 한글 음절이 아닙니다.`;
+      if(c%28)throw `‘${ch}’에는 받침이 있어 한글100 음절이 아닙니다.`;
+      const a=CHO.indexOf(Math.floor(c/588)),b=JUNG.indexOf(Math.floor((c%588)/28));
+      if(a<0||b<0)throw `‘${ch}’는 한글100 표에 없는 음절입니다.`;
+      pairs.push([a,b]);
+    }
+  }else{
+    const re=/([XGNDRMBSJC])(ya|ye|yo|yu|w|a|e|o|u|y)/gi;let r,used=0;
+    while((r=re.exec(s))){if(r.index!==used)break;used=re.lastIndex;
+      pairs.push([RC.indexOf(r[1].toUpperCase()),RV.indexOf(r[2].toLowerCase())])}
+    if(used!==s.length)throw '로마자 표기를 읽지 못했습니다: '+s.slice(used);
+  }
+  return pairs;
+}
+
+function fmt(v,d){return (Math.round(v*Math.pow(10,d))/Math.pow(10,d)).toFixed(d)}
+function meters(lat,cell){
+  const ns=cell*111320, ew=ns*Math.cos(lat*Math.PI/180);
+  const f=x=>x>=1000?(x/1000).toFixed(x>=10000?0:1)+'km':x>=1?x.toFixed(x>=10?0:1)+'m':(x*100).toFixed(0)+'cm';
+  return `${f(ns)} × ${f(ew)}`;
+}
+
+let used=new Map();
+function render(oct,pairs,lat,lon,label,given){
+  const n=pairs.length, d=decode(oct,pairs);
+  const s=pairs.map(([a,b])=>syl(a,b));
+  const [ca,cb]=checkPair(oct,pairs), cs=syl(ca,cb);
+  const head=s.slice(0,2).join(''), tail=s.slice(2).join('');
+  $('addr').innerHTML=`<span class="oct">${oct}</span>${head}${tail?'<span class="dot">.</span>'+tail:''}<span class="chk">/${cs}</span>`;
+  const v=$('verify');
+  if(given){const ok=given[0]===ca&&given[1]===cb;
+    v.hidden=false;v.className='verify '+(ok?'ok':'bad');
+    v.textContent=ok?`확인 음절 ${syl(...given)} 일치: 받은 주소에 오류가 없습니다.`
+      :`확인 음절 불일치: 받은 것은 ${syl(...given)}(${given[0]}${given[1]}), 계산 값은 ${cs}(${ca}${cb})입니다. 어느 음절을 잘못 들었거나 순서가 바뀌었습니다. 다시 불러 달라고 하세요.`;
+  }else v.hidden=true;
+  const plain=`${oct}${head}${tail?'.'+tail:''}/${cs}`;
+  const roman=`${oct} ${pairs.map(p=>rom(...p)).join('')}/${rom(ca,cb)}`;
+  const digitsStr=`${oct}) `+pairs.map(([a,b])=>`${a}${b}`).join(' ')+` / ${ca}${cb}`;
+  const voice=`${oct}) `+pairs.map(([a,b],i)=>`${s[i]}${a}${b}`).join(' ')+` / 확인 ${cs}${ca}${cb}`;
+  const dp=Math.max(1,n-2+1);
+  const rows=[
+    ['음절 주소',plain],['음성 호출',voice],['로마자',roman],['숫자',digitsStr],
+    [label,`${fmt(lat,6)}, ${fmt(lon,6)}`],
+    ['칸 중심',`${fmt(d.lat,dp+1)}, ${fmt(d.lon,dp+1)}`],
+    ['칸 크기',`남북 × 동서 약 ${meters(d.lat,d.cell)}`]
+  ];
+  $('kv').innerHTML='';
+  rows.forEach(([k,v])=>{
+    const dt=document.createElement('dt');dt.textContent=k;
+    const dd=document.createElement('dd');dd.textContent=v;
+    const b=document.createElement('button');b.type='button';b.className='ghost copy';b.textContent='복사';
+    b.onclick=()=>copy(v,b);
+    $('kv').append(dt,dd,b);
+  });
+  const q=`${fmt(d.lat,6)},${fmt(d.lon,6)}`;
+  $('links').innerHTML=`<a href="https://www.google.com/maps?q=${q}" target="_blank" rel="noopener">Google 지도에서 보기</a><a href="https://www.openstreetmap.org/?mlat=${fmt(d.lat,6)}&mlon=${fmt(d.lon,6)}#map=17/${fmt(d.lat,6)}/${fmt(d.lon,6)}" target="_blank" rel="noopener">OpenStreetMap에서 보기</a>`;
+  const tb=$('steps').tBodies[0];tb.innerHTML='';
+  const latPlace=['10°','1°','0.1°','0.01°','0.001°','0.0001°','0.00001°','0.000001°'];
+  pairs.forEach(([a,b],i)=>{
+    const tr=tb.insertRow();
+    tr.innerHTML=`<td class="num">${i+1}</td><td class="syl">${s[i]}</td><td class="num">${a}${b}</td><td class="num lat">${a} × ${latPlace[i]}</td><td class="num lon">${b} × ${latPlace[i]}</td><td>${SIZE[i]}</td>`;
+  });
+  used=new Map();pairs.forEach(([a,b],i)=>{const k=a*10+b;used.set(k,(used.get(k)||[]).concat(i+1))});
+  drawGrid();
+}
+function drawGrid(){
+  const g=$('grid');let h='<tr><th>위\\경</th>'+VOW.map((v,j)=>`<th class="lon">${j}<br>${v}</th>`).join('')+'</tr>';
+  for(let a=0;a<10;a++){
+    h+=`<tr><th class="lat">${a}0 ${CON[a]}</th>`;
+    for(let b=0;b<10;b++){const k=a*10+b,u=used.get(k);
+      h+=`<td class="${u?'on':''}" title="${k}">${syl(a,b)}<small>${String(k).padStart(2,'0')}${u?' · '+u.join(','):''}</small></td>`}
+    h+='</tr>';
+  }
+  g.innerHTML=h;
+}
+function copy(t,b){
+  const done=()=>{const o=b.textContent;b.textContent='복사됨';setTimeout(()=>b.textContent=o,1200)};
+  try{navigator.clipboard.writeText(t).then(done,()=>sel(b))}catch(e){sel(b)}
+}
+function sel(b){const dd=b.previousElementSibling;const r=document.createRange();r.selectNodeContents(dd);const s=getSelection();s.removeAllRanges();s.addRange(r)}
+
+function doEnc(){
+  $('encErr').textContent='';
+  try{const {lat,lon}=parseCoord($('coord').value);const n=+$('prec').value;
+    const {oct,pairs}=encode(lat,lon,n);render(oct,pairs,lat,lon,'입력 좌표');
+    $('glo').value=`${oct}${pairs.map(p=>syl(...p)).join('')}/${syl(...checkPair(oct,pairs))}`;
+  }catch(e){$('encErr').textContent=e}
+}
+function doDec(){
+  $('decErr').textContent='';
+  try{const {oct,pairs,check}=parseGlo($('glo').value);const d=decode(oct,pairs);
+    $('prec').value=pairs.length;render(oct,pairs,d.lat,d.lon,'되돌린 좌표',check);
+    $('coord').value=`${fmt(d.lat,6)}, ${fmt(d.lon,6)}`;
+  }catch(e){$('decErr').textContent=e}
+}
+$('fEnc').addEventListener('submit',e=>{e.preventDefault();doEnc()});
+$('fDec').addEventListener('submit',e=>{e.preventDefault();doDec()});
+$('prec').addEventListener('change',doEnc);
+
+[['인천 계산동','37.5390208, 126.7236864',6],['길리 인다 호텔','-8.36064, 116.03900',7],['광화문','37.575911, 126.976863',6],['연평도','37.6645, 125.6961',5]].forEach(([name,c,n])=>{
+  const b=document.createElement('button');b.type='button';b.className='ghost';b.textContent=name;
+  b.onclick=()=>{$('coord').value=c;$('prec').value=n;doEnc()};$('samples').appendChild(b);
+});
+doEnc();
+</script>
+
+</body>
+</html>
