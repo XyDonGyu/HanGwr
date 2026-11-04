@@ -2,8 +2,9 @@ MIT License
 
 Copyright (c) 2026 한글로망 (HanGwr)
 
-This license applies to the program code in the tracker/ and tools/ folders.
-The documents and textbook in docs/ and textbook/ are licensed under
+This license applies to the program code in the tracker/ and tools/ folders
+and to the converter script in intro/.
+The documents and textbook in docs/, intro/ and textbook/ are licensed under
 Creative Commons Attribution 4.0 International (CC BY 4.0):
 https://creativecommons.org/licenses/by/4.0/
 
